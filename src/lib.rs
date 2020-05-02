@@ -13,6 +13,7 @@ extern crate pango;
 
 mod dial;
 mod button;
+mod meter;
 
 use lv2_ui::*;
 use lv2_sys::*;
@@ -21,8 +22,9 @@ use urid::*;
 use lv2_urid::*;
 use lv2_core::prelude::*;
 
-use pugl_ui::widget::*;
+//use pugl_ui::widget::*;
 use pugl_ui::ui::*;
+use pugl_ui::layout::*;
 use pugl_ui::*;
 use pugl_sys::*;
 
@@ -39,6 +41,8 @@ struct URIDs {
 struct MyUIPorts {
     gain: UIPort<f32>,
     enabled: UIPort<f32>,
+    meter_in: UIPort<f32>,
+    meter_out: UIPort<f32>
 }
 
 impl UIPortsTrait for MyUIPorts {
@@ -46,6 +50,8 @@ impl UIPortsTrait for MyUIPorts {
 	match port_index {
 	    0 => Some(self.gain.value_as_ptr()),
 	    1 => Some(self.enabled.value_as_ptr()),
+	    2 => Some(self.meter_in.value_as_ptr()),
+	    3 => Some(self.meter_out.value_as_ptr()),
 	    _ => None
 	}
     }
@@ -55,8 +61,10 @@ impl UIPortsTrait for MyUIPorts {
 struct AmpUI {
     view: Box<PuglView<UI>>,
 
-    gain_dial: Id,
-    enable_btn: Id,
+    gain_dial: widget::Id,
+    enable_btn: widget::Id,
+    meter_in: widget::Id,
+    meter_out: widget::Id,
     ports: MyUIPorts,
 
     urids: URIDs
@@ -65,13 +73,20 @@ struct AmpUI {
 impl AmpUI {
     pub fn new(features: &mut Features<'static>, parent_window: *mut std::ffi::c_void) -> Option<Self> {
 	eprintln!("new");
-	let mut ui = Box::new(UI::new( RootWidgetFactory {}, Layouter::Vertical(StackLayouter::default())));
+	let mut ui = Box::new(UI::new( RootWidgetFactory {}, Layouter::Horizontal(StackLayouter::default())));
 
-	let gain_dial = ui.new_widget(0, dial::new(-90., 24., 1.));
-	let enable_btn = ui.new_widget(0, button::new_toggle_button("enable", false));
+	let _vlayout = ui.new_layouting_widget(0, Layouter::Vertical(StackLayouter::default()), LayoutWidgetFactory {});
 
+	let gain_dial = ui.new_widget(_vlayout, dial::new(-90., 24., 1.));
+	let enable_btn = ui.new_widget(_vlayout, button::new_toggle_button("enable", false));
+	let meter_in = ui.new_widget(0, meter::new(-60., 20.));
+	let meter_out = ui.new_widget(0, meter::new(-60., 20.));
+
+	ui.pack_to_layout(_vlayout, LayoutTarget::Horizontal(LayoutDirection::Back));
 	ui.pack_to_layout(gain_dial, LayoutTarget::Vertical(LayoutDirection::Front));
 	ui.pack_to_layout(enable_btn, LayoutTarget::Vertical(LayoutDirection::Front));
+	ui.pack_to_layout(meter_in, LayoutTarget::Horizontal(LayoutDirection::Back));
+	ui.pack_to_layout(meter_out, LayoutTarget::Horizontal(LayoutDirection::Back));
 	ui.do_layout();
 
 	let view = PuglView::make_view(ui, parent_window);
@@ -85,9 +100,19 @@ impl AmpUI {
 	let ports = MyUIPorts {
 	    gain: UIPort::<f32>::new(),
 	    enabled: UIPort::<f32>::new(),
+	    meter_in: UIPort::<f32>::new(),
+	    meter_out: UIPort::<f32>::new()
 	};
 
-	Some(Self { view, gain_dial, enable_btn, ports, urids: features.map.populate_collection()? })
+	Some(Self {
+	    view,
+	    gain_dial,
+	    enable_btn,
+	    meter_in,
+	    meter_out,
+	    ports,
+	    urids: features.map.populate_collection()?
+	})
     }
 
     fn ui(&self) -> &mut UI {
@@ -121,7 +146,11 @@ impl PluginUI for AmpUI {
 
     fn idle(&mut self) -> i32 {
 	let ui = self.ui();
-	ui.next_event(-1.0);
+	ui.next_event(0.0);
+
+	if ui.close_request_issued() {
+	    return 1;
+	}
 
 	if ui.widget::<RootWidget>(0).focus_next() {
 		ui.focus_next_widget();
@@ -144,6 +173,12 @@ impl PluginUI for AmpUI {
 	}
 	if let Some(v) = self.ports.enabled.value() {
 	    self.ui().widget::<button::Button>(self.enable_btn).set_toggle_state(v > 0.5);
+	}
+	if let Some(v) = self.ports.meter_in.value() {
+	    self.ui().widget::<meter::Meter>(self.meter_in).set_value(v);
+	}
+	if let Some(v) = self.ports.meter_out.value() {
+	    self.ui().widget::<meter::Meter>(self.meter_out).set_value(v);
 	}
     }
 }
@@ -170,11 +205,11 @@ pub unsafe extern "C" fn lv2ui_descriptor(index: u32) -> *const LV2UI_Descriptor
 
 
 struct RootWidget {
-    stub: WidgetStub,
+    stub: widget::WidgetStub,
     focus_next: bool
 }
 
-impl Widget for RootWidget {
+impl widget::Widget for RootWidget {
     fn exposed (&self, _expose: &ExposeArea, cr: &cairo::Context) {
         cr.set_source_rgb (0.2, 0.2, 0.2);
         let size = self.size();
@@ -182,10 +217,10 @@ impl Widget for RootWidget {
         cr.fill ();
     }
     fn min_size(&self) -> Size { Size { w: 0., h: 0. } }
-    fn stub (&self) -> &WidgetStub {
+    fn stub (&self) -> &widget::WidgetStub {
         &self.stub
     }
-    fn stub_mut (&mut self) -> &mut WidgetStub {
+    fn stub_mut (&mut self) -> &mut widget::WidgetStub {
         &mut self.stub
     }
     fn event(&mut self, ev: Event) -> Option<Event> {
@@ -213,8 +248,8 @@ impl RootWidget {
 }
 
 struct RootWidgetFactory {}
-impl WidgetFactory<RootWidget> for RootWidgetFactory {
-    fn make_widget(&self, stub: WidgetStub) -> RootWidget {
+impl widget::WidgetFactory<RootWidget> for RootWidgetFactory {
+    fn make_widget(&self, stub: widget::WidgetStub) -> RootWidget {
         RootWidget {
             stub,
 	    focus_next: false
