@@ -73,20 +73,22 @@ struct AmpUI {
 impl AmpUI {
     pub fn new(features: &mut Features<'static>, parent_window: *mut std::ffi::c_void) -> Option<Self> {
 	eprintln!("new");
-	let mut ui = Box::new(UI::new( RootWidgetFactory {}, Layouter::Horizontal(StackLayouter::default())));
+	let mut ui = Box::new(UI::new(RootWidgetFactory {}));
 
-	let _vlayout = ui.new_layouting_widget(0, Layouter::Vertical(StackLayouter::default()), LayoutWidgetFactory {});
+	let h_layout = ui.new_layouter::<HorizontalLayouter>();
+	let v_layout = ui.new_layouter::<VerticalLayouter>();
 
-	let gain_dial = ui.new_widget(_vlayout, dial::new(-90., 24., 1.));
-	let enable_btn = ui.new_widget(_vlayout, button::new_toggle_button("enable", false));
-	let meter_in = ui.new_widget(0, meter::new(-60., 20.));
-	let meter_out = ui.new_widget(0, meter::new(-60., 20.));
+	let gain_dial = ui.new_widget(dial::new(-90., 24., 1.));
+	let enable_btn = ui.new_widget(button::new_toggle_button("enable", false));
+	let meter_in = ui.new_widget(meter::new(-60., 20.));
+	let meter_out = ui.new_widget(meter::new(-60., 20.));
 
-	ui.pack_to_layout(_vlayout, LayoutTarget::Horizontal(LayoutDirection::Back));
-	ui.pack_to_layout(gain_dial, LayoutTarget::Vertical(LayoutDirection::Front));
-	ui.pack_to_layout(enable_btn, LayoutTarget::Vertical(LayoutDirection::Front));
-	ui.pack_to_layout(meter_in, LayoutTarget::Horizontal(LayoutDirection::Back));
-	ui.pack_to_layout(meter_out, LayoutTarget::Horizontal(LayoutDirection::Back));
+	ui.pack_to_layout(h_layout.widget(), ui.root_layout(), StackDirection::Front);
+	ui.pack_to_layout(v_layout.widget(), h_layout, StackDirection::Front);
+	ui.pack_to_layout(gain_dial, v_layout, StackDirection::Front);
+	ui.pack_to_layout(enable_btn, v_layout, StackDirection::Front);
+	ui.pack_to_layout(meter_in, h_layout, StackDirection::Back);
+	ui.pack_to_layout(meter_out, h_layout, StackDirection::Back);
 	ui.do_layout();
 
 	let view = PuglView::make_view(ui, parent_window);

@@ -36,7 +36,7 @@ impl Widget for Meter {
 	let size = self.size();
 	let w = size.w;
 	let h = -size.h;
-	let pos = self.pos() + Coord { x: -w/2., y: -h };
+	let pos = self.pos() + Coord { x: 0.0, y: -h };
 	let mut value = self.value as f64;
 
 	let min_value = self.min_value as f64;
@@ -62,6 +62,7 @@ impl Widget for Meter {
     fn stub_mut (&mut self) -> &mut WidgetStub {
         &mut self.stub
     }
+    fn height_expandable(&self) -> bool { true }
 }
 
 impl Meter {
