@@ -73,15 +73,15 @@ struct AmpUI {
 impl AmpUI {
     pub fn new(features: &mut Features<'static>, parent_window: *mut std::ffi::c_void) -> Option<Self> {
 	eprintln!("new");
-	let mut ui = Box::new(UI::new(RootWidgetFactory {}));
+	let mut ui = Box::new(UI::new(Box::new(RootWidget::default())));
 
 	let h_layout = ui.new_layouter::<HorizontalLayouter>();
 	let v_layout = ui.new_layouter::<VerticalLayouter>();
 
-	let gain_dial = ui.new_widget(dial::new(-90., 24., 1.));
-	let enable_btn = ui.new_widget(button::new_toggle_button("enable", false));
-	let meter_in = ui.new_widget(meter::new(-60., 20.));
-	let meter_out = ui.new_widget(meter::new(-60., 20.));
+	let gain_dial = ui.new_widget(dial::Dial::new(-90., 24., 1.));
+	let enable_btn = ui.new_widget(button::Button::new_toggle_button("enable", false));
+	let meter_in = ui.new_widget(meter::Meter::new(-60., 20.));
+	let meter_out = ui.new_widget(meter::Meter::new(-60., 20.));
 
 	ui.pack_to_layout(h_layout.widget(), ui.root_layout(), StackDirection::Front);
 	ui.pack_to_layout(v_layout.widget(), h_layout, StackDirection::Front);
@@ -205,7 +205,7 @@ pub unsafe extern "C" fn lv2ui_descriptor(index: u32) -> *const LV2UI_Descriptor
     }
 }
 
-
+#[derive(Default)]
 struct RootWidget {
     stub: widget::WidgetStub,
     focus_next: bool
@@ -246,15 +246,5 @@ impl RootWidget {
 	let f = self.focus_next;
 	self.focus_next = false;
 	f
-    }
-}
-
-struct RootWidgetFactory {}
-impl widget::WidgetFactory<RootWidget> for RootWidgetFactory {
-    fn make_widget(&self, stub: widget::WidgetStub) -> RootWidget {
-        RootWidget {
-            stub,
-	    focus_next: false
-        }
     }
 }

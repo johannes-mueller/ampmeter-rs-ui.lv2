@@ -66,6 +66,13 @@ impl Widget for Meter {
 }
 
 impl Meter {
+    pub fn new(min_value: f32, max_value: f32) -> Box<Meter> {
+	Box::new( Meter { stub: WidgetStub::default(),
+			  min_value, max_value,
+			  value: min_value,
+			  width: 25.0
+	})
+    }
     pub fn set_value(&mut self, v: f32) {
 	self.value = match v {
 	    v if v < self.min_value => self.min_value,
@@ -74,23 +81,4 @@ impl Meter {
 	};
 	self.ask_for_repaint();
     }
-}
-
-pub struct Factory { min: f32, max: f32 }
-
-impl WidgetFactory<Meter> for Factory {
-    fn make_widget(&self, stub: WidgetStub) -> Meter {
-	Meter {
-	    stub,
-	    width: 25.0,
-	    min_value: self.min,
-	    max_value: self.max,
-
-	    value: self.min
-	}
-    }
-}
-
-pub fn new(min: f32, max: f32) -> Factory {
-    Factory { min, max }
 }

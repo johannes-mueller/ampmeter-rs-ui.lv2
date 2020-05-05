@@ -92,13 +92,13 @@ impl Widget for Button {
 }
 
 impl Button {
-    fn new_toggle_button(text: &str, toggle_state: bool, stub: WidgetStub) -> Self {
-	let mut btn = Self::new(text, stub);
+    pub fn new_toggle_button(text: &str, toggle_state: bool) -> Box<Button> {
+	let mut btn = Self::new(text);
 	btn.toggle_state = Some(toggle_state);
 	btn
     }
 
-    fn new (text: &str, stub: WidgetStub) -> Button {
+    pub fn new (text: &str) -> Box<Button> {
         let sf = cairo::ImageSurface::create (cairo::Format::ARgb32, 8, 8).unwrap();
         let cr = cairo::Context::new (&sf);
 
@@ -113,12 +113,13 @@ impl Button {
         let (w, h) = lyt.get_pixel_size();
         let min_size: Size = Size { w: w.into(), h: h.into() };
 
-        Button { stub,
-		 text: String::from(text),
-		 min_size,
-		 clicked: false,
-		 toggle_state: None
-	}
+        Box::new(Button {
+	    stub: WidgetStub::default(),
+	    text: String::from(text),
+	    min_size,
+	    clicked: false,
+	    toggle_state: None
+	})
     }
 
     pub fn clicked(&mut self) -> bool {
@@ -136,35 +137,4 @@ impl Button {
 	    self.toggle_state = Some(new_state)
 	}
     }
-}
-
-pub struct Factory {
-    text: &'static str
-}
-
-impl WidgetFactory<Button> for Factory {
-    fn make_widget(&self, stub: WidgetStub) -> Button {
-        Button::new (self.text, stub)
-    }
-}
-
-pub fn new(txt: &'static str) -> Factory {
-    Factory {
-        text: txt
-    }
-}
-
-pub struct ToggleButtonFactory {
-    text: &'static str,
-    toggled: bool
-}
-
-impl WidgetFactory<Button> for ToggleButtonFactory {
-    fn make_widget(&self, stub: WidgetStub) -> Button {
-	Button::new_toggle_button(self.text, self.toggled, stub)
-    }
-}
-
-pub fn new_toggle_button(text: &'static str, toggled: bool) -> ToggleButtonFactory {
-    ToggleButtonFactory { text, toggled }
 }
