@@ -59,12 +59,12 @@ impl UIPortsTrait for MyUIPorts {
 
 #[uri("https://johannes-mueller.org/lv2/ampmeter-rs#ui")]
 struct AmpUI {
-    view: Box<PuglView<UI>>,
+    view: Box<PuglView<UI<RootWidget>>>,
 
-    gain_dial: widget::Id,
-    enable_btn: widget::Id,
-    meter_in: widget::Id,
-    meter_out: widget::Id,
+    gain_dial: widget::WidgetHandle<dial::Dial>,
+    enable_btn: widget::WidgetHandle<button::Button>,
+    meter_in: widget::WidgetHandle<meter::Meter>,
+    meter_out: widget::WidgetHandle<meter::Meter>,
     ports: MyUIPorts,
 
     urids: URIDs
@@ -117,7 +117,7 @@ impl AmpUI {
 	})
     }
 
-    fn ui(&self) -> &mut UI {
+    fn ui(&self) -> &mut UI<RootWidget> {
 	self.view.handle()
     }
 }
@@ -154,15 +154,15 @@ impl PluginUI for AmpUI {
 	    return 1;
 	}
 
-	if ui.widget::<RootWidget>(0).focus_next() {
+	if ui.root_widget().focus_next() {
 		ui.focus_next_widget();
 	}
 
-	if let Some(v) = self.ui().widget::<dial::Dial>(self.gain_dial).changed_value() {
+	if let Some(v) = self.ui().widget(self.gain_dial).changed_value() {
 	    self.ports.gain.set_value(v as f32);
 	}
 
-	if let Some(v) = self.ui().widget::<button::Button>(self.enable_btn).toggle_state() {
+	if let Some(v) = self.ui().widget(self.enable_btn).toggle_state() {
 	    self.ports.enabled.set_value( if v { 1.0 } else { 0.0 } );
 	}
 
@@ -171,16 +171,16 @@ impl PluginUI for AmpUI {
 
     fn update(&mut self) {
 	if let Some(v) = self.ports.gain.value() {
-	    self.ui().widget::<dial::Dial>(self.gain_dial).set_value((v as f32).into());
+	    self.ui().widget(self.gain_dial).set_value((v as f32).into());
 	}
 	if let Some(v) = self.ports.enabled.value() {
-	    self.ui().widget::<button::Button>(self.enable_btn).set_toggle_state(v > 0.5);
+	    self.ui().widget(self.enable_btn).set_toggle_state(v > 0.5);
 	}
 	if let Some(v) = self.ports.meter_in.value() {
-	    self.ui().widget::<meter::Meter>(self.meter_in).set_value(v);
+	    self.ui().widget(self.meter_in).set_value(v);
 	}
 	if let Some(v) = self.ports.meter_out.value() {
-	    self.ui().widget::<meter::Meter>(self.meter_out).set_value(v);
+	    self.ui().widget(self.meter_out).set_value(v);
 	}
     }
 }
