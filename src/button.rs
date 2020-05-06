@@ -17,6 +17,8 @@ pub struct Button {
 }
 
 impl Widget for Button {
+    widget_stub!();
+
     fn exposed (&self, _expose: &ExposeArea, cr: &cairo::Context) {
         let (r, g, b) = if self.toggle_state.unwrap_or(false) {
 	    (0.7, 0.7, 0.7)
@@ -81,12 +83,6 @@ impl Widget for Button {
         }.and_then (|es| es.pass_event (ev))
     }
     fn min_size(&self) -> Size { self.min_size }
-    fn stub (&self) -> &WidgetStub {
-        &self.stub
-    }
-    fn stub_mut (&mut self) -> &mut WidgetStub {
-        &mut self.stub
-    }
 
     fn takes_focus(&self) -> bool { true }
 }

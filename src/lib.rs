@@ -212,18 +212,12 @@ struct RootWidget {
 }
 
 impl widget::Widget for RootWidget {
+    widget_stub!();
     fn exposed (&self, _expose: &ExposeArea, cr: &cairo::Context) {
         cr.set_source_rgb (0.2, 0.2, 0.2);
         let size = self.size();
         cr.rectangle (0., 0., size.w, size.h);
         cr.fill ();
-    }
-    fn min_size(&self) -> Size { Size { w: 0., h: 0. } }
-    fn stub (&self) -> &widget::WidgetStub {
-        &self.stub
-    }
-    fn stub_mut (&mut self) -> &mut widget::WidgetStub {
-        &mut self.stub
     }
     fn event(&mut self, ev: Event) -> Option<Event> {
         ev.try_keypress()
